@@ -52,6 +52,8 @@ Many content management systems store their content in databases, but some use f
   end
   ```
 
+---
+
 #### LS Implementation
 
 1. Create a `data` directory in the same directory as your Sinatra application. Within the `data` directory, create three text files with following names: `history.txt`, `changes.txt` and `about.txt`.
@@ -163,4 +165,35 @@ This is a good time to add some content to the files in the `data` directory of 
   </ul>
   ```
 
-  
+---
+
+#### LS Implementation
+
+1. Update `views/index.erb` to make each document name a link.
+2. Add a new route that will handle viewing the contents of documents.
+3. In the new route, read the contents of the document to be viewed.
+4. Set an appropriate value for the `Content-Type` header to tell browsers to display the response as plain text.
+
+#### LS Solution
+
+```ruby
+# cms.rb
+get "/:filename" do
+  file_path = root + "/data/" + params[:filename]
+
+  headers["Content-Type"] = "text/plain"
+  File.read(file_path)
+end
+```
+
+```html
+<!-- views/index.erb -->
+<ul>
+  <% @files.each do |file| %>
+    <li><a href="/<%= file %>"><%= file %></a></li>
+  <% end %>
+</ul>
+```
+
+---
+
