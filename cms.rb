@@ -10,3 +10,11 @@ get "/" do
   end
   erb :index
 end
+
+get "/:file" do
+  file_name = params[:file]
+  file_path = root + "/data/#{file_name}"
+  @file = File.read(file_path)
+
+  erb :file
+end
