@@ -3,7 +3,7 @@ ENV["RACK_ENV"] = "test"
 require "minitest/autorun"
 require "rack/test"
 
-require_relative "../cms.rb"
+require_relative "../cms"
 
 class CMSTest < Minitest::Test
   include Rack::Test::Methods
@@ -13,27 +13,20 @@ class CMSTest < Minitest::Test
   end
 
   def test_index
-    index_body = <<~BODY
-      <ul>
-          <li><a href="/changes.txt">changes.txt</a></li>
-          <li><a href="/about.txt">about.txt</a></li>
-          <li><a href="/history.txt">history.txt</a></li>
-      </ul>
-    BODY
-
     get "/"
+
     assert_equal(200, last_response.status)
     assert_equal("text/html;charset=utf-8", last_response["Content-Type"])
-    assert_equal(index_body, last_response.body)
+    assert_includes(last_response.body, "about.txt")
+    assert_includes(last_response.body, "changes.txt")
+    assert_includes(last_response.body, "history.txt")
   end
 
-  def test_filename
-    # index_body = <<~BODY
-    
-    # BODY
-    
-    get "/changes.txt"
+  def test_viewing_text_document
+    get "/history.txt"
+
     assert_equal(200, last_response.status)
     assert_equal("text/plain", last_response["Content-Type"])
+    assert_includes(last_response.body, "Ruby 0.95 released")
   end
 end

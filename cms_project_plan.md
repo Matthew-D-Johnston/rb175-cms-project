@@ -289,3 +289,63 @@ Here is a summary of what you need to be able to do to get started testing a Sin
 * However, the above won't quite work because of the dynamic `"/:filename"`. I'm not sure how to deal with this.
 
 #### LS Implementation
+
+1. Add `minitest` and `rack-test` to the project's `Gemfile` and run `bundle install` to install them.
+2. Create a `test` directory within the project. Inside that directory, create a file called `cms_test.rb` and add to it any testing setup code.
+3. Write a test that performs a `GET` request to `/` and validates the response has a successful response and contains the names of the three documents.
+4. Write a test that performs a `GET` request to `/history.txt` (or another document of your choosing) and validates the response is successful and contains some of the content of that document.
+
+#### LS Solution
+
+Gemfile:
+
+```ruby
+source "https://rubygems.org"
+
+gem "sinatra"
+gem "sinatra-contrib"
+gem "erubis"
+
+gem "minitest"
+gem "rack-test"
+```
+
+`test/cms_test.rb`
+
+```ruby
+ENV["RACK_ENV"] = "test"
+
+require "minitest/autorun"
+require "rack/test"
+
+require_relative "../cms"
+
+class CMSTest < Minitest::Test
+  include Rack::Test::Methods
+
+  def app
+    Sinatra::Application
+  end
+
+  def test_index
+    get "/"
+
+    assert_equal 200, last_response.status
+    assert_equal "text/html;charset=utf-8", last_response["Content-Type"]
+    assert_includes last_response.body, "about.txt"
+    assert_includes last_response.body, "changes.txt"
+    assert_includes last_response.body, "history.txt"
+  end
+
+  def test_viewing_text_document
+    get "/history.txt"
+
+    assert_equal 200, last_response.status
+    assert_equal "text/plain", last_response["Content-Type"]
+    assert_includes last_response.body, "Ruby 0.95 released"
+  end
+end
+```
+
+---
+
