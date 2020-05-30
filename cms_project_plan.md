@@ -197,3 +197,95 @@ end
 
 ---
 
+### Assignment 5: Adding Tests
+
+Here is a summary of what you need to be able to do to get started testing a Sinatra application:
+
+1. Make a request to your application.
+
+   Use `get`, `post`, or other HTTP-method named methods.
+
+2. Access the response.
+
+   The response to your request will be accessible using `last_response`. This method will return an instance of `Rack::MockResponse`. Instances of this class provide `status`, `body`, and `[]` methods for accessing their status code, body, and headers, respectively.
+
+3. Make assertions against values in the response.
+
+   Use the standard assertions supplied by `Minitest`.
+
+#### Requirements
+
+1. Write tests for the routes that the application already supports.
+
+#### My Implementation and Solution
+
+* First, include the `minitest` gem in our `Gemfile`, then run `bundle install`.
+
+* Next, we create a `test` directory and then a `cms_test.rb` file within it.
+
+* Then we set up the file by assigning the `RACK_ENV` environment variable, requiring the appropriate testing libraries, requiring the app that is going to be tested, then creating the test suite class, mixing in useful rack testing helper methods, and define an `app` method that will return an instance of a Rack application when called.
+
+  ```ruby
+  ENV["RACK_ENV"] = "test"
+  
+  require "minitest/autorun"
+  require "rack/test"
+  
+  require_relative "../cms.rb"
+  
+  class CMSTest < Minitest::Test
+    include Rack::Test::Methods
+  
+    def app
+      Sinatra::Application
+    end
+  
+    # tests ...
+  
+  end
+  ```
+
+* Now we must write the appropriate tests. We have two routes, so we will want two tests.
+
+* The first is our main homepage, or index page.
+
+  ```ruby
+  # ...
+  
+  def test_index
+    index_body = <<~BODY
+      <ul>
+          <li><a href="/changes.txt">changes.txt</a></li>
+          <li><a href="/about.txt">about.txt</a></li>
+          <li><a href="/history.txt">history.txt</a></li>
+      </ul>
+    BODY
+  
+    get "/"
+    assert_equal(200, last_response.status)
+    assert_equal("text/html;charset=utf-8", last_response["Content-Type"])
+    assert_equal(index_body, last_response.body)
+  end
+  ```
+
+* The above test works, but it has a very static implementation. If we add another text file to our `data` directory, it will be displayed on our page but our test will become obsolete. There must be some way to employ interpolation but I'm not sure the best way to go about doing it.
+
+* Let's write the other test.
+
+  ```ruby
+  # ...
+  
+  def test_filename
+    index_body = <<~BODY
+    
+    BODY
+    
+    get "/:filename"
+    assert_equal(200, last_response.status)
+    assert_equal("text/plain", last_response["Content-Type"])
+  end
+  ```
+
+* However, the above won't quite work because of the dynamic `"/:filename"`. I'm not sure how to deal with this.
+
+#### LS Implementation
