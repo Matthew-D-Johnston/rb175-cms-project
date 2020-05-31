@@ -4,7 +4,7 @@ require "tilt/erubis"
 
 configure do
   enable :sessions
-  set :session_secret, 'secret'
+  set :session_secret, 'super secret'
 end
 
 root = File.expand_path("..", __FILE__)
@@ -19,11 +19,11 @@ end
 get "/:filename" do
   file_path = root + "/data/" + params[:filename]
 
-  if File.exist?(file_path)
+  if File.file?(file_path)
     headers["Content-Type"] = "text/plain"
     File.read(file_path)
   else
-    session[:error] = "#{params[:filename]} does not exist."
+    session[:message] = "#{params[:filename]} does not exist."
     redirect "/"
   end
 end

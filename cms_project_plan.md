@@ -426,3 +426,10 @@ end
 
 #### LS Implementation
 
+1. Check to see if a file exists before attempting to read in its content.
+2. Enable sessions in the application so we can persist data between requests.
+3. If a document doesn't exist, store an error message in the session and redirect the user.
+4. In the index template, if there is error message, print it out and delete it.
+
+#### LS Solution
+
