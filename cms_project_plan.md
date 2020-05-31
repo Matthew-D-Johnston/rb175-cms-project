@@ -349,3 +349,80 @@ end
 
 ---
 
+### Assignment 6: Handling Requests for Nonexistent Documents
+
+#### Requirements
+
+1. When a user attempts to view a document that does not exist, they should be redirected to the index page and shown the message: `$DOCUMENT does not exist.`.
+2. When the user reloads the index page after seeing an error message, the message should go away.
+
+#### My Implementation and Solution
+
+* We will need to check to see if a file exist within the route that directs the client to the requested file.
+
+* If the file exists then go ahead with the usual implementation; otherwise, the client should be redirected back to the index page. A flash message should appear: `$DOCUMENT does not exist.`.
+
+* We should create a session error that gets triggered if the client must be redirected. `session[:error] = "$DOCUMENT does not exist."`.
+
+* Within the index `get "/"` route, we should print out this error message if it exists and then delete it.
+
+* First I need to include a `configure` method in the main `cms.rb` file in order to enable sessions.
+
+  ```ruby
+  configure do
+    enable :sessions
+    set :session_secret, 'secret'
+  end
+  ```
+
+* Here is the updated `get "/:filename"` route:
+
+  ```ruby
+  get "/:filename" do
+    file_path = root + "/data/" + params[:filename]
+  
+    if File.exist?(file_path)
+      headers["Content-Type"] = "text/plain"
+      File.read(file_path)
+    else
+      session[:error] = "#{params[:filename]} does not exist."
+      redirect "/"
+    end
+  end
+  ```
+
+* Here is the updated `index.erb` file:
+
+  ```ruby
+  <% if session[:error] %>
+    <p><%= session.delete(:error) %></p>
+  <% end %>
+  
+  <ul>
+    <% @files.each do |file| %>
+      <li><a href="/<%= file %>"><%= file %></a></li>
+    <% end %>
+  </ul>
+  ```
+
+* Now we need to write a test to check to see if an error message is created.
+
+* Here is the test:
+
+  ```ruby
+  def test_error_message
+    get "/non_existent.txt"
+  
+    assert_equal(302, last_response.status)
+  
+    get "/"
+    assert_equal(200, last_response.status)
+    assert_includes(last_response.body, "non_existent.txt does not exist.")
+  
+    get "/"
+    refute_includes(last_response.body, "non_existent.txt does not exist.")
+  end
+  ```
+
+#### LS Implementation
+

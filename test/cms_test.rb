@@ -29,4 +29,17 @@ class CMSTest < Minitest::Test
     assert_equal("text/plain", last_response["Content-Type"])
     assert_includes(last_response.body, "Ruby 0.95 released")
   end
+
+  def test_error_message
+    get "/non_existent.txt"
+
+    assert_equal(302, last_response.status)
+
+    get "/"
+    assert_equal(200, last_response.status)
+    assert_includes(last_response.body, "non_existent.txt does not exist.")
+
+    get "/"
+    refute_includes(last_response.body, "non_existent.txt does not exist.")
+  end
 end
