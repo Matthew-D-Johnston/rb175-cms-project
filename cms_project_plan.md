@@ -492,3 +492,106 @@ end
 
 ---
 
+### Assignment 7: Viewing Markdown Files
+
+Markdown is a common text-to-html markup language. You've probably encountered it here on Launch School, on Stack Overflow, GitHub, and other popular sites already.
+
+Converting raw Markdown text into HTML can be done with a variety of libraries, many of which are available for use with a Ruby application. We recommend you use [Redcarpet](https://github.com/vmg/redcarpet) in this project. To get started, follow these steps:
+
+1. Add `redcarpet` to your `Gemfile` and run `bundle install`.
+
+2. Add `require "redcarpet"` to the top of your application.
+
+3. To actually render text into HTML, create a `Redcarpet::Markdown` instance and then use it to process the text:
+
+   ```ruby
+   markdown = Redcarpet::Markdown.new(Redcarpet::Render::HTML)
+   markdown.render("# This will be a headline!")
+   ```
+
+You can read more about how to use Redcarpet [on GitHub](https://github.com/vmg/redcarpet).
+
+#### Requirements
+
+1. When a user views a document written in Markdown format, the browser should render the rendered HTML version of the document's content.
+
+#### My Implementation and Solution
+
+* Create a `file.erb` views template. Make it so that the output will be conditional on whether the file is a markdown file or not. If it is a markdown then use the `markdown.render` implementation above. Otherwise just read the file as is.
+* Will need to change the variable name in the `get "/:filename"` route to instance variables.
+* My solution does not seem to be rendering properly. What is being rendered is a string of html code. The browser is not actually processing html but a string.
+
+#### LS Implementation
+
+1. Rename `about.txt` to `about.md` Add some Markdown-formatted text to this file.
+2. Create a helper method called `render_markdown` that takes a single argument, the text to be processed, and returns rendered HTML.
+3. When a user is viewing a file with the extension `md`, render the file's content using RedCarpet and return the result as the response's body.
+
+#### LS Solution
+
+`cms.rb`
+
+```ruby
+# cms.rb
+require "sinatra"
+require "sinatra/reloader"
+require "tilt/erubis"
+require "redcarpet"
+
+configure do
+  enable :sessions
+  set :session_secret, 'super secret'
+end
+
+root = File.expand_path("..", __FILE__)
+
+def render_markdown(text)
+  markdown = Redcarpet::Markdown.new(Redcarpet::Render::HTML)
+  markdown.render(text)
+end
+
+def load_file_content(path)
+  content = File.read(path)
+  case File.extname(path)
+  when ".txt"
+    headers["Content-Type"] = "text/plain"
+    content
+  when ".md"
+    render_markdown(content)
+  end
+end
+
+get "/" do
+  @files = Dir.glob(root + "/data/*").map do |path|
+    File.basename(path)
+  end
+  erb :index
+end
+
+get "/:filename" do
+  file_path = root + "/data/" + params[:filename]
+
+  if File.exist?(file_path)
+    load_file_content(file_path)
+  else
+    session[:message] = "#{params[:filename]} does not exist."
+    redirect "/"
+  end
+end
+```
+
+`test/cms_test.rb`
+
+```ruby
+# test/cms_test.rb
+def test_index
+  get "/"
+
+  assert_equal 200, last_response.status
+  assert_equal "text/html;charset=utf-8", last_response["Content-Type"]
+  assert_includes last_response.body, "about.md"
+  assert_includes last_response.body, "changes.txt"
+  assert_includes last_response.body, "history.txt"
+end
+```
+
