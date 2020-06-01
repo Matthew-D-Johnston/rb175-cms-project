@@ -433,3 +433,62 @@ end
 
 #### LS Solution
 
+`cms.rb`
+
+```ruby
+...
+
+configure do
+  enable :sessions
+  set :session_secret, 'super secret'
+end
+
+...
+
+get "/:filename" do
+  file_path = root + "/data/" + params[:filename]
+
+  if File.file?(file_path)
+    headers["Content-Type"] = "text/plain"
+    File.read(file_path)
+  else
+    session[:message] = "#{params[:filename]} does not exist."
+    redirect "/"
+  end
+end
+```
+
+`views/index.rb`
+
+```ruby
+<% if session[:message] %>
+  <p><%= session.delete(:message) %></p>
+<% end %>
+
+<ul>
+  <% @files.each do |file| %>
+    <li><a href="/<%= file %>"><%= file %></a></li>
+  <% end %>
+</ul>
+```
+
+`test/cms_test.rb`
+
+```ruby
+def test_document_not_found
+  get "/notafile.ext" # Attempt to access a nonexistent file
+
+  assert_equal 302, last_response.status # Assert that the user was redirected
+
+  get last_response["Location"] # Request the page that the user was redirected to
+
+  assert_equal 200, last_response.status
+  assert_includes last_response.body, "notafile.ext does not exist"
+
+  get "/" # Reload the page
+  refute_includes last_response.body, "notafile.ext does not exist" # Assert that our message has been removed
+end
+```
+
+---
+
