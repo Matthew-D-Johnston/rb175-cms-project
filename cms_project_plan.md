@@ -595,3 +595,151 @@ def test_index
 end
 ```
 
+---
+
+### Assignment 8: Editing Document Content
+
+Now it’s time to allow users to modify the content stored within our CMS.
+
+#### Requirements
+
+1. When a user views the index page, they should see an “Edit” link next to each document name.
+2. When a user clicks an edit link, they should be taken to an edit page for the appropriate document.
+3. When a user views the edit page for a document, that document's content should appear within a textarea.
+4. When a user edits the document's content and clicks a “Save Changes” button, they are redirected to the index page and are shown a message: `$FILENAME has been updated.`.
+
+#### My Implementation
+
+* Add an anchor tag to the `index.erb` view template for an "Edit" link.
+* Create a new `get "/:filename/edit"` route in the `cms.rb` file.
+* Create a new `edit.erb` view template.
+* Create a new `post "/:filename/changes"` route in the `cms.rb` file; this will be the route for whenever the "Save Changes" button is pushed.
+
+#### LS Implementation
+
+1. Update `views/index.erb` to add edit links after each document name.
+2. Create a new route for editing a document. Within this route, render a new view template that contains a form and a text area.
+3. Create a new route for saving changes to the document. Within this route, update the contents of the appropriate document, add a message to the session, and redirect the user.
+
+#### My Solution
+
+`index.erb`
+
+```ruby
+<% if session[:message] %>
+  <p><%= session.delete(:message) %></p>
+<% end %>
+
+<ul>
+  <% @files.each do |file| %>
+    <li><a href="/<%= file %>"><%= file %></a> <a href="/<%= file %>/edit">(Edit)</a></li>
+  <% end %>
+</ul>
+```
+
+`edit.erb`
+
+```html
+<p>Edit content of <%= @file_name %></p>
+<form action="/<%= @file_name %>/change" method="post">
+  <p><input value="<%= @content %>"/></p>
+  <button type="submit">Save Changes</button>
+</form>
+```
+
+`cms.rb`
+
+```ruby
+# ... rest of code omitted
+
+get "/:filename/edit" do
+  @file_name = params[:filename]
+  file_path = root + "/data/" + @file_name
+  @content = File.read(file_path)
+
+  erb :edit
+end
+
+post "/:filename/change" do
+
+  redirect "/"
+end
+```
+
+#### LS Solution
+
+```ruby
+# cms.rb
+get "/:filename/edit" do
+  file_path = root + "/data/" + params[:filename]
+
+  @filename = params[:filename]
+  @content = File.read(file_path)
+
+  erb :edit
+end
+
+post "/:filename" do
+  file_path = root + "/data/" + params[:filename]
+
+  File.write(file_path, params[:content])
+
+  session[:message] = "#{params[:filename]} has been updated."
+  redirect "/"
+end
+```
+
+```html
+<!-- views/edit.erb -->
+<form method="post" action="/<%= @filename %>">
+  <label for="content">Edit content of <%= @filename %>:</label>
+  <div>
+    <textarea name="content" id="content" rows="20" cols="100"><%= @content %></textarea>
+  </div>
+  <button type="submit">Save Changes</button>
+</form>
+```
+
+```html
+<!-- views.index.erb -->
+<ul>
+  <% @files.each do |file| %>
+    <li>
+      <a href="/<%= file %>"><%= file %></a>
+      <a href="/<%= file %>/edit">edit</a>
+    </li>
+  <% end %>
+</ul>
+```
+
+And for the tests:
+
+```ruby
+# test/cms_test.rb
+def test_editing_document
+  get "/changes.txt/edit"
+
+  assert_equal 200, last_response.status
+  assert_includes last_response.body, "<textarea"
+  assert_includes last_response.body, %q(<button type="submit")
+end
+
+def test_updating_document
+  post "/changes.txt", content: "new content"
+
+  assert_equal 302, last_response.status
+
+  get last_response["Location"]
+
+  assert_includes last_response.body, "changes.txt has been updated"
+
+  get "/changes.txt"
+  assert_equal 200, last_response.status
+  assert_includes last_response.body, "new content"
+end
+```
+
+
+
+
+

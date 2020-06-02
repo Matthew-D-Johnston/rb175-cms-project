@@ -32,7 +32,7 @@ DEPENDENCIES
   minitest
   rack-test
   redcarpet
-  sinatra (= 1.4.7)
+  sinatra (~> 1.4.7)
   sinatra-contrib
 
 RUBY VERSION

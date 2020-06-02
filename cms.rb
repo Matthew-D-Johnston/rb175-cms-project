@@ -30,6 +30,7 @@ get "/" do
   @files = Dir.glob(root + "/data/*").map do |path|
     File.basename(path)
   end
+  
   erb :index
 end
 
@@ -42,4 +43,22 @@ get "/:filename" do
     session[:message] = "#{params[:filename]} does not exist."
     redirect "/"
   end
+end
+
+get "/:filename/edit" do
+  file_path = root + "/data/" + params[:filename]
+
+  @filename = params[:filename]
+  @content = File.read(file_path)
+
+  erb :edit
+end
+
+post "/:filename" do
+  file_path = root + "/data/" + params[:filename]
+
+  File.write(file_path, params[:content])
+
+  session[:message] = "#{params[:filename]} has been updated."
+  redirect "/"
 end
