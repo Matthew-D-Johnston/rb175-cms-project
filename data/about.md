@@ -1,4 +1,4 @@
-## About Ruby
+## Ruby is...
 
 Hi, everyone here are some important points:
 

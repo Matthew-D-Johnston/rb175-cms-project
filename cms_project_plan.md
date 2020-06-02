@@ -593,6 +593,14 @@ def test_index
   assert_includes last_response.body, "changes.txt"
   assert_includes last_response.body, "history.txt"
 end
+
+def test_viewing_markdown_document
+  get "/about.md"
+
+  assert_equal 200, last_response.status
+  assert_equal "text/html;charset=utf-8", last_response["Content-Type"]
+  assert_includes last_response.body, "<h1>Ruby is...</h1>"
+end
 ```
 
 ---
@@ -738,6 +746,14 @@ def test_updating_document
   assert_includes last_response.body, "new content"
 end
 ```
+
+---
+
+### Assignment 9: Isolating Test Execution
+
+#### Implementation
+
+1. Update the rest of the tests so they pass after making the changes described above.
 
 
 
