@@ -40,6 +40,10 @@ get "/" do
   erb :index
 end
 
+get "/new_document" do
+  erb :new_doc
+end
+
 get "/:filename" do
   file_path = File.join(data_path, params[:filename])
 
@@ -58,6 +62,14 @@ get "/:filename/edit" do
   @content = File.read(file_path)
 
   erb :edit
+end
+
+post "/new_document" do
+  filename = params[:new_doc]
+  File.new(filename)
+
+  session[:message] = "#{params[:new_doc]} was created."
+  redirect "/"
 end
 
 post "/:filename" do

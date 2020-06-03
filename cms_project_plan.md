@@ -1,4 +1,4 @@
-##### RB175 Networked Applications > Project: File-based CMS
+#### RB175 Networked Applications > Project: File-based CMS
 
 ---
 
@@ -1048,5 +1048,51 @@ end
 
 Save [this image](https://da77jsbdz4r05.cloudfront.net/images/file_based_cms/favicon.ico) to the project's `public` directory, and the `favicon.ico` errors will go away. Browsers automatically request a file called `favicon.ico` when they load sites so they can show an icon for that site. By adding this file, the browser will show it in the page's tab and your application won't have to deal with ignoring those requests, as they can sometimes cause unexpected errors.
 
+### Assignment 12: Creating New Documents
 
+#### Requirements
+
+1. When a user views the index page, they should see a link that says "New Document".
+2. When a user clicks the "New Document" link, they should be taken to a page with a text input labeled "Add a new document:" and a submit button labeled "Create".
+3. When a user enters a document name and clicks "Create," they should be redirected to the index page. The name they entered in the form should now appear in the file list. They should see a message that says `"$FILENAME was created."`, where ​`$FILENAME` is the name of the document just created.
+4. If a user attempts to create a new document without a name, the form should be re-displayed and a message should say "A name is required."
+
+#### My Implementation and Solution
+
+* Add appropriate html to `index.erb` so that a link that says "New Document" is created.
+
+  ```html
+  <ul>
+    <% @files.each do |file| %>
+      <li>
+        <a href="/<%= file %>"><%= file %></a>
+        <a href="/<%= file %>/edit">edit</a>
+      </li>
+    <% end %>
+  </ul>
+  
+  <p><a href="/new_document">New Document</a></p> # new code here
+  ```
+
+* Create a `get "/new_document"` route for the link in the `cms.rb` file.
+
+  ```ruby
+  get "/new_document" do
+    erb :new_doc
+  end
+  ```
+
+* Create a `new_doc.erb` views template.
+
+  ```html
+  <form method="post" action="">
+    <label for="new_doc"> Add a new document:</label>
+    <div>
+      <textarea name="new_doc" id="new_doc"></textarea> <button type="submit">Create</button>
+    </div>
+  </form>
+  ```
+
+* Create a `post "/new_document"` route.
+* This is where I'm a bit stuck.
 
