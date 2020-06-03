@@ -1044,9 +1044,13 @@ end
 ...
 ```
 
+---
+
 ### Assignment 11: Sidebar: Favicon Requests
 
 Save [this image](https://da77jsbdz4r05.cloudfront.net/images/file_based_cms/favicon.ico) to the project's `public` directory, and the `favicon.ico` errors will go away. Browsers automatically request a file called `favicon.ico` when they load sites so they can show an icon for that site. By adding this file, the browser will show it in the page's tab and your application won't have to deal with ignoring those requests, as they can sometimes cause unexpected errors.
+
+---
 
 ### Assignment 12: Creating New Documents
 
@@ -1095,4 +1099,121 @@ Save [this image](https://da77jsbdz4r05.cloudfront.net/images/file_based_cms/fav
 
 * Create a `post "/new_document"` route.
 * This is where I'm a bit stuck.
+
+#### LS Implementation
+
+1. Add a new route that will handle rendering the new document form.
+2. Add a view template and render it within the route created in #1. This template should include a form for entering the new document's name.
+3. Add a link to the new route within the index view template.
+4. Add a new route that the form from #2 will submit to.
+   * If a filename is provided by the user, create the document, store the appropriate message in the session, and redirect the user to the index page.
+   * If filename is not provided by the user, render the new form and display an error message.
+5. Make sure the routes are setting an appropriate status code.
+
+#### LS Solution
+
+```html
+<!-- views/new.erb -->
+<form method="post" action="/create">
+  <label for="filename">Add a new document:</label>
+  <div>
+    <input name="filename" id="filename" />
+    <button type="submit">Create</button>
+  </div>
+</form>
+```
+
+```html
+<!-- views/index.erb -->
+<ul>
+  <% @files.each do |file| %>
+    <li>
+      <a href="/<%= file %>"><%= file %></a>
+      <a href="/<%= file %>/edit">edit</a>
+    </li>
+  <% end %>
+</ul>
+
+<p><a href="/new">New Document</a></p>
+```
+
+```ruby
+# cms.rb
+get "/new" do
+  erb :new
+end
+
+post "/create" do
+  filename = params[:filename].to_s
+
+  if filename.size == 0
+    session[:message] = "A name is required."
+    status 422
+    erb :new
+  else
+    file_path = File.join(data_path, filename)
+
+    File.write(file_path, "")
+    session[:message] = "#{params[:filename]} has been created."
+
+    redirect "/"
+  end
+end
+```
+
+```ruby
+# test/cms_test.rb
+  def test_view_new_document_form
+    get "/new"
+
+    assert_equal 200, last_response.status
+    assert_includes last_response.body, "<input"
+    assert_includes last_response.body, %q(<button type="submit")
+  end
+
+  def test_create_new_document
+    post "/create", filename: "test.txt"
+    assert_equal 302, last_response.status
+
+    get last_response["Location"]
+    assert_includes last_response.body, "test.txt has been created"
+
+    get "/"
+    assert_includes last_response.body, "test.txt"
+  end
+
+  def test_create_new_document_without_filename
+    post "/create", filename: ""
+    assert_equal 422, last_response.status
+    assert_includes last_response.body, "A name is required"
+  end
+```
+
+#### Questions
+
+1. What will happen if a user creates a document without a file extension? How could this be handled?
+
+#### Solution
+
+Any file that doesn't have either a `txt` or `md` extension won't be displayed at all, since the `case` statement in `load_file_content` doesn't have an `else` clause:
+
+```ruby
+# cms.rb
+def load_file_content(path)
+  content = File.read(path)
+  case File.extname(path)
+  when ".txt"
+    headers["Content-Type"] = "text/plain"
+    content
+  when ".md"
+    erb render_markdown(content)
+  end
+end
+```
+
+Validating the value provided as a new document name would prevent this situation from occurring.
+
+---
+
+
 

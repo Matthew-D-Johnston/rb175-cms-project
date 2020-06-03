@@ -40,8 +40,8 @@ get "/" do
   erb :index
 end
 
-get "/new_document" do
-  erb :new_doc
+get "/new" do
+  erb :new
 end
 
 get "/:filename" do
@@ -64,12 +64,21 @@ get "/:filename/edit" do
   erb :edit
 end
 
-post "/new_document" do
-  filename = params[:new_doc]
-  File.new(filename)
+post "/create" do
+  filename = params[:filename].to_s
 
-  session[:message] = "#{params[:new_doc]} was created."
-  redirect "/"
+  if filename.size == 0
+    session[:message] = "A name is required."
+    status 422
+    erb :new
+  else
+    file_path = File.join(data_path, filename)
+
+    File.write(file_path, "")
+    session[:message] = "#{params[:filename]} has been created."
+
+    redirect "/"
+  end
 end
 
 post "/:filename" do
