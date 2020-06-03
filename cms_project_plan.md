@@ -982,3 +982,71 @@ While we're adding styling, we can also change the default display of the site t
 
 #### LS Solution
 
+`views/layout.erb`
+
+```html
+<html>
+  <title>CMS</title>
+  <link href="/cms.css" rel="stylesheet" type="text/css" />
+  <body>
+    <% if session[:message] %>
+      <p class="message"><%= session.delete(:message) %></p>
+    <% end %>
+    <%= yield %>
+  </body>
+</html>
+```
+
+`views/index.erb`
+
+```html
+<ul>
+  <% @files.each do |file| %>
+    <li>
+      <a href="/<%= file %>"><%= file %></a>
+      <a href="/<%= file %>/edit">edit</a>
+    </li>
+  <% end %>
+</ul>
+```
+
+`public/cms.css`
+
+```css
+body {
+  padding: 1em;
+  font-family: sans-serif;
+}
+
+.message {
+  padding: 10px;
+  background: #FFFF99;
+}
+```
+
+`cms.rb`
+
+```ruby
+
+...
+
+def load_file_content(path)
+  content = File.read(path)
+  case File.extname(path)
+  when ".txt"
+    headers["Content-Type"] = "text/plain"
+    content
+  when ".md"
+    erb render_markdown(content)
+  end
+end
+
+...
+```
+
+### Assignment 11: Sidebar: Favicon Requests
+
+Save [this image](https://da77jsbdz4r05.cloudfront.net/images/file_based_cms/favicon.ico) to the project's `public` directory, and the `favicon.ico` errors will go away. Browsers automatically request a file called `favicon.ico` when they load sites so they can show an icon for that site. By adding this file, the browser will show it in the page's tab and your application won't have to deal with ignoring those requests, as they can sometimes cause unexpected errors.
+
+
+

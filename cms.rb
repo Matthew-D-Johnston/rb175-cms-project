@@ -26,7 +26,7 @@ def load_file_content(path)
   case File.extname(path)
   when ".txt"
     headers["Content-Type"] = "text/plain"
-    erb content
+    content
   when ".md"
     erb render_markdown(content)
   end
