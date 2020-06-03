@@ -933,7 +933,52 @@ post "/:filename" do
 end
 ```
 
+---
 
+### Assignment 10: Adding Global Style and Behaviour
 
+When a message is displayed to a user anywhere on the site, it should be styled in a way that is easily distinguished from the rest of the page. This will help attract the user's attention to the information in the message that would otherwise be easy to miss.
 
+While we're adding styling, we can also change the default display of the site to use a sans-serif font and have a little padding around the outside.
+
+#### Requirements
+
+1. When a message is displayed to a user, that message should appear against a yellow background.
+2. Messages should disappear if the page they appear on is reloaded.
+3. Text files should continue to be displayed by the browser as plain text.
+4. The entire site (including markdown files, but not text files) should be displayed in a sans-serif typeface.
+
+#### My Implementation and Solution
+
+* In the `index.erb` file, modify the html `p` tag for the error message to include a `style` attribute that sets the `background-color` to `yellow`.
+
+  ```html
+  <% if session[:message] %>
+    <p style="background-color:yellow;"><%= session.delete(:message) %></p>
+  <% end %>
+  ```
+
+* We need to a way to implement the sans-serif typeface for the entire site except for when text files are displayed.
+
+#### LS Implementation
+
+1. Add the following CSS to a new file called `cms.css` in your project.
+
+   ```css
+   body {
+     padding: 1em;
+     font-family: sans-serif;
+   }
+   
+   .message {
+     padding: 10px;
+     background: #FFFF99;
+   }
+   ```
+
+2. Create a layout called `layout.erb`, and link to the `cms.css` file from it.
+
+3. When viewing a text file, no surrounding HTML code should be sent in the response.
+
+#### LS Solution
 
