@@ -1299,3 +1299,175 @@ post "/:filename/delete" do
 end
 ```
 
+```ruby
+def test_deleting_document
+  create_document("test.txt")
+
+  post "/test.txt/delete"
+
+  assert_equal(302, last_response.status)
+
+  get last_response["Location"]
+  assert_includes(last_response.body, "test.txt was deleted.")
+
+  get "/"
+  refute_includes(last_response.body, "test.txt")
+end
+```
+
+---
+
+### Assignment 14: Signing In and Out
+
+Now that the content in our CMS can be modified and new documents can be created and deleted, we'd like to only allow registered users to be able to perform these tasks. To do that, though, first we'll need to have a way for users to sign in and out of the application.
+
+#### Requirements
+
+1. When a signed-out user views the index page of the site, they should see a "Sign In" button.
+2. When a user clicks the "Sign In" button, they should be taken to a new page with a sign-in form. The form should contain a text input labeled "Username" and a password input labeled "Password". The form should also contain a submit button labeled "Sign In".
+3. When a user enters the username "admin" and password "secret" into the sign in form and clicks the "Sign In" button, they should be signed in and redirected to the index page. A message should display that says "Welcome!".
+4. When a user enters any other username and password into the sign-in form and clicks the "Sign In" button, the sign-in form should be redisplayed and an error message "Invalid Credentials" should be shown. The username they entered into the form should appear in the username input.
+5. When a signed-in user views the index page, they should see a message at the bottom of the page that says "Signed in as $USERNAME.", followed by a button labeled "Sign Out".
+6. When a signed-in user clicks this "Sign Out" button, they should be signed out of the application and redirected to the index page of the site. They should see a message that says "You have been signed out.".
+
+#### My Implementation
+
+* Update the `index.erb` view template to include a "Sign In" button, which when clicked should direct the user to a sign-in page.
+* Update the `cms.rb` file to include a route for the sign-in page. Something like, `get "/users/signin"`. We will want to create a session variable to store the status of whether or not the user is signed in, such as `session[:signedin]`. This can be assigned a boolean value, `true` when the user is signed in and false when they are not signed in.
+* Create a new `signin.erb` view template, which should include "Username:" and "Password:" labels for forms where users can input their credentials, and a "Sign In" button at the bottom. If the username and password are valid (i.e. "admin" and "secret") then the user should be redirected back to the index page. This should also store a session "Welcome!" message.
+* If any other username or password are input into the sign-in form, clicking the "Sign In" button should result in an error message "Invalid Credentials". Update the template so that the username they entered appears in the username input.
+* Update the `index.erb` view template so that it includes a message at the bottom of the screen that says "Signed in as $USERNAME.", followed by a button labeled "Sign Out". When the user clicks this button, the session message should be set to `"You have been signed out"` and the user should be redirected to the index page.
+
+#### LS Implementation
+
+1. Create a route that renders a view template containing a sign in form.
+2. Create a route that the form from #1 submits to.
+   * If the credentials are correct, store the username and the success message in the session and redirect to the index page.
+   * If the credentials are not correct, rerender the sign in form and display an error message.
+3. Add some code to the index page to display a "Sign In" or "Sign Out" button and message based on whether the user is signed in.
+4. Create a route that deletes the username from the session, adds a message to the session, and redirects the user to the index page. Point the "Sign Out" button created in #3 at this route.
+
+#### LS Solution
+
+```erb
+<!-- views/index.erb -->
+<ul>
+  <% @files.each do |file| %>
+    <li>
+      <a href="/<%= file %>"><%= file %></a>
+      <a href="/<%= file %>/edit">edit</a>
+      <form class="inline" method="post" action="<%= file %>/delete">
+        <button type="submit">delete</button>
+      </form>
+    </li>
+  <% end %>
+</ul>
+
+<p><a href="/new">New Document</a></p>
+
+<% if session[:username] %>
+  <form method="post" action="/users/signout">
+    <p class="user-status">
+      Signed in as <%= session[:username] %>.
+      <button type="submit">Sign Out</button>
+    </p>
+  </form>
+<% else %>
+  <p class="user-status"><a href="/users/signin">Sign In</a></p>
+<% end %>
+```
+
+```erb
+<!-- views/signin.erb -->
+<form method="post" action="/users/signin">
+  <div>
+    <label for="username"> Username:
+      <input name="username" id="username" value="<%= params[:username] %>"/>
+    </label>
+  </div>
+  <div>
+    <label for="password"> Password:
+      <input type="password" id="password" name="password" />
+    </label>
+  </div>
+  <button type="submit">Sign In</button>
+</form>
+```
+
+```ruby
+# cms.rb
+
+...
+
+get "/users/signin" do
+  erb :signin
+end
+
+post "/users/signin" do
+  if params[:username] == "admin" && params[:password] == "secret"
+    session[:username] = params[:username]
+    session[:message] = "Welcome!"
+    redirect "/"
+  else
+    session[:message] = "Invalid credentials"
+    status 422
+    erb :signin
+  end
+end
+
+post "/users/signout" do
+  session.delete(:username)
+  session[:message] = "You have been signed out."
+  redirect "/"
+end
+```
+
+```css
+/* public/cms.css */
+
+...
+
+.user-status {
+  font-style: italic;
+  font-size: 0.9em;
+}
+```
+
+```ruby
+# test/cms_test.rb
+def test_signin_form
+  get "/users/signin"
+
+  assert_equal 200, last_response.status
+  assert_includes last_response.body, "<input"
+  assert_includes last_response.body, %q(<button type="submit")
+end
+
+def test_signin
+  post "/users/signin", username: "admin", password: "secret"
+  assert_equal 302, last_response.status
+
+  get last_response["Location"]
+  assert_includes last_response.body, "Welcome"
+  assert_includes last_response.body, "Signed in as admin"
+end
+
+def test_signin_with_bad_credentials
+  post "/users/signin", username: "guest", password: "shhhh"
+  assert_equal 422, last_response.status
+  assert_includes last_response.body, "Invalid credentials"
+end
+
+def test_signout
+  post "/users/signin", username: "admin", password: "secret"
+  get last_response["Location"]
+  assert_includes last_response.body, "Welcome"
+
+  post "/users/signout"
+  get last_response["Location"]
+
+  assert_includes last_response.body, "You have been signed out"
+  assert_includes last_response.body, "Sign In"
+end
+```
+
