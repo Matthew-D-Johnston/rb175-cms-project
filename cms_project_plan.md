@@ -1255,3 +1255,47 @@ Validating the value provided as a new document name would prevent this situatio
 
 #### LS Implementation
 
+1. Add a form to each `li` within `views/index.erb`. This form needs to only contain a submit button.
+2. Create a route that the forms created in #1 will submit to. Within this route, delete the appropriate document, store a message in the session, and redirect the user back to the index page.
+
+#### LS Solution
+
+```erb
+<!-- views/index.erb -->
+<ul>
+  <% @files.each do |file| %>
+    <li>
+      <a href="/<%= file %>"><%= file %></a>
+      <a href="/<%= file %>/edit">edit</a>
+      <form class="inline" method="post" action="/<%= file %>/delete">
+        <button type="submit">delete</button>
+      </form>
+    </li>
+  <% end %>
+</ul>
+
+<p><a href="/new">New Document</a></p>
+```
+
+```css
+/* public/cms.css */
+
+...
+
+form.inline {
+  display: inline;
+}
+```
+
+```ruby
+# cms.rb
+post "/:filename/delete" do
+  file_path = File.join(data_path, params[:filename])
+
+  File.delete(file_path)
+
+  session[:message] = "#{params[:filename]} has been deleted."
+  redirect "/"
+end
+```
+
