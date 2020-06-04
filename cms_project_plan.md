@@ -1215,5 +1215,43 @@ Validating the value provided as a new document name would prevent this situatio
 
 ---
 
+### Assignment 13: Deleting Documents
 
+#### Requirements
+
+1. When a user views the index page, they should see a "delete" button next to each document.
+2. When a user clicks a "delete" button, the application should delete the appropriate document and display a message: "$FILENAME was deleted".
+
+#### My Implementation and Solution
+
+* Update the the `index.erb` view template to include a "delete" button next to each file.
+
+  ```html
+  <ul>
+    <% @files.each do |file| %>
+      <li>
+        <a href="/<%= file %>"><%= file %></a>
+        <a href="/<%= file %>/edit">edit</a>
+        <button type="submit" method="delete" action="/<%= file %>">delete</button>
+      </li>
+    <% end %>
+  </ul>
+  
+  <p><a href="/new">New Document</a></p>
+  ```
+
+* Add a `delete "/:filename"` route to the `cms.rb` file.
+
+  ```ruby
+  delete "/:filename" do
+    file_path = File.join(data_path, params[:filename])
+  
+    File.delete(file_path)
+  
+    session[:message] = "#{params[:filename]} was deleted."
+    redirect "/"
+  end
+  ```
+
+#### LS Implementation
 
