@@ -95,7 +95,7 @@ post "/:filename/delete" do
 
   File.delete(file_path)
 
-  session[:message] = "#{params[:filename]} was deleted."
+  session[:message] = "#{params[:filename]} has been deleted."
   redirect "/"
 end
 
