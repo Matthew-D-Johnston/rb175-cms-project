@@ -1481,5 +1481,261 @@ end
 
 #### LS Solution
 
+```ruby
+ENV["RACK_ENV"] = "test"
+
+require "fileutils"
+
+require "minitest/autorun"
+require "rack/test"
+
+require_relative "../cms"
+
+class CMSTest < Minitest::Test
+  include Rack::Test::Methods
+
+  def app
+    Sinatra::Application
+  end
+
+  def setup
+    FileUtils.mkdir_p(data_path)
+  end
+
+  def teardown
+    FileUtils.rm_rf(data_path)
+  end
+
+  def create_document(name, content = "")
+    File.open(File.join(data_path, name), "w") do |file|
+      file.write(content)
+    end
+  end
+
+  def session
+    last_request.env["rack.session"]
+  end
+
+  def test_index
+    create_document "about.md"
+    create_document "changes.txt"
+
+    get "/"
+
+    assert_equal 200, last_response.status
+    assert_equal "text/html;charset=utf-8", last_response["Content-Type"]
+    assert_includes last_response.body, "about.md"
+    assert_includes last_response.body, "changes.txt"
+  end
+
+  def test_viewing_text_document
+    create_document "history.txt", "Ruby 0.95 released"
+
+    get "/history.txt"
+
+    assert_equal 200, last_response.status
+    assert_equal "text/plain", last_response["Content-Type"]
+    assert_includes last_response.body, "Ruby 0.95 released"
+  end
+
+  def test_viewing_markdown_document
+    create_document "about.md", "# Ruby is..."
+
+    get "/about.md"
+
+    assert_equal 200, last_response.status
+    assert_equal "text/html;charset=utf-8", last_response["Content-Type"]
+    assert_includes last_response.body, "<h1>Ruby is...</h1>"
+  end
+
+  def test_document_not_found
+    get "/notafile.ext"
+
+    assert_equal 302, last_response.status
+    assert_equal "notafile.ext does not exist.", session[:message]
+  end
+
+  def test_editing_document
+    create_document "changes.txt"
+
+    get "/changes.txt/edit"
+
+    assert_equal 200, last_response.status
+    assert_includes last_response.body, "<textarea"
+    assert_includes last_response.body, %q(<button type="submit")
+  end
+
+  def test_updating_document
+    post "/changes.txt", content: "new content"
+
+    assert_equal 302, last_response.status
+    assert_equal "changes.txt has been updated.", session[:message]
+
+    get "/changes.txt"
+    assert_equal 200, last_response.status
+    assert_includes last_response.body, "new content"
+  end
+
+  def test_view_new_document_form
+    get "/new"
+
+    assert_equal 200, last_response.status
+    assert_includes last_response.body, "<input"
+    assert_includes last_response.body, %q(<button type="submit")
+  end
+
+  def test_create_new_document
+    post "/create", filename: "test.txt"
+    assert_equal 302, last_response.status
+    assert_equal "test.txt has been created.", session[:message]
+
+    get "/"
+    assert_includes last_response.body, "test.txt"
+  end
+
+  def test_create_new_document_without_filename
+    post "/create", filename: ""
+    assert_equal 422, last_response.status
+    assert_includes last_response.body, "A name is required"
+  end
+
+  def test_deleting_document
+    create_document("test.txt")
+
+    post "/test.txt/delete"
+    assert_equal 302, last_response.status
+    assert_equal "test.txt has been deleted.", session[:message]
+
+    get "/"
+    refute_includes last_response.body, %q(href="/test.txt")
+  end
+
+  def test_signin_form
+    get "/users/signin"
+
+    assert_equal 200, last_response.status
+    assert_includes last_response.body, "<input"
+    assert_includes last_response.body, %q(<button type="submit")
+  end
+
+  def test_signin
+    post "/users/signin", username: "admin", password: "secret"
+    assert_equal 302, last_response.status
+    assert_equal "Welcome!", session[:message]
+    assert_equal "admin", session[:username]
+
+    get last_response["Location"]
+    assert_includes last_response.body, "Signed in as admin"
+  end
+
+  def test_signin_with_bad_credentials
+    post "/users/signin", username: "guest", password: "shhhh"
+    assert_equal 422, last_response.status
+    assert_nil session[:username]
+    assert_includes last_response.body, "Invalid credentials"
+  end
+
+  def test_signout
+    get "/", {}, {"rack.session" => { username: "admin" } }
+    assert_includes last_response.body, "Signed in as admin"
+
+    post "/users/signout"
+    assert_equal "You have been signed out", session[:message]
+
+    get last_response["Location"]
+    assert_nil session[:username]
+    assert_includes last_response.body, "Sign In"
+  end
+end
+```
+
+### Assignment 16: Restricting Actions to Only Signed-in Users
+
+Adding the concept of signed-in users to this project allows the ability to restrict certain actions (those that result in changes to data) to only those signed-in users. This is a very common model in web applications, where guest (signed-out) users can access resources but not make any changes to them.
+
+#### Requirements
+
+1. When a signed-out user attempts to perform the following actions, they should be redirected back to the index and shown a message that says "You must be signed in to do that.":
+   * Visit the edit page for a document
+   * Submit changes to a document
+   * Visit the new document page
+   * Submit the new document form
+   * Delete a document
+
+#### My Implementation
+
+* Update the `get "/:filename/edit"` route to include a conditional that will check to see if the user is signed in. This can be done by checking the `session` hash for the username. If there is no username then we will want to set the `session[:message]` to `"You must be signed in to do that."` and redirect back to the index page.
+* We will want to update the rest of the routes that apply to the above actions with a similar process. Thus, we might want to defined a method that we can use and apply repetitively.
+
+#### My Solution
+
+```ruby
+def not_signed_in_redirect
+  session[:message] = "You must be signed in to do that."
+  redirect "/"
+end
+
+# ...
+
+get "/new" do
+  not_signed_in_redirect if !session[:username]
+  erb :new
+end
+
+# ...
+
+get "/:filename/edit" do
+  not_signed_in_redirect if !session[:username]
+
+  file_path = File.join(data_path, params[:filename])
+
+  @filename = params[:filename]
+  @content = File.read(file_path)
+
+  erb :edit
+end
+
+post "/create" do
+  not_signed_in_redirect if !session[:username]
+
+  filename = params[:filename].to_s
+
+  if filename.size == 0
+    session[:message] = "A name is required."
+    status 422
+    erb :new
+  else
+    file_path = File.join(data_path, filename)
+
+    File.write(file_path, "")
+    session[:message] = "#{params[:filename]} has been created."
+
+    redirect "/"
+  end
+end
+
+post "/:filename" do
+  not_signed_in_redirect if !session[:username]
+
+  file_path = File.join(data_path, params[:filename])
+
+  File.write(file_path, params[:content])
+
+  session[:message] = "#{params[:filename]} has been updated."
+  redirect "/"
+end
+
+post "/:filename/delete" do
+  not_signed_in_redirect if !session[:username]
+
+  file_path = File.join(data_path, params[:filename])
+
+  File.delete(file_path)
+
+  session[:message] = "#{params[:filename]} has been deleted."
+  redirect "/"
+end
+```
+
 
 

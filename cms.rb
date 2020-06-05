@@ -32,6 +32,11 @@ def load_file_content(path)
   end
 end
 
+def not_signed_in_redirect
+  session[:message] = "You must be signed in to do that."
+  redirect "/"
+end
+
 get "/" do
   pattern = File.join(data_path, "*")
   @files = Dir.glob(pattern).map do |path|
@@ -41,6 +46,7 @@ get "/" do
 end
 
 get "/new" do
+  not_signed_in_redirect if !session[:username]
   erb :new
 end
 
@@ -56,6 +62,8 @@ get "/:filename" do
 end
 
 get "/:filename/edit" do
+  not_signed_in_redirect if !session[:username]
+
   file_path = File.join(data_path, params[:filename])
 
   @filename = params[:filename]
@@ -65,6 +73,8 @@ get "/:filename/edit" do
 end
 
 post "/create" do
+  not_signed_in_redirect if !session[:username]
+
   filename = params[:filename].to_s
 
   if filename.size == 0
@@ -82,6 +92,8 @@ post "/create" do
 end
 
 post "/:filename" do
+  not_signed_in_redirect if !session[:username]
+
   file_path = File.join(data_path, params[:filename])
 
   File.write(file_path, params[:content])
@@ -91,6 +103,8 @@ post "/:filename" do
 end
 
 post "/:filename/delete" do
+  not_signed_in_redirect if !session[:username]
+
   file_path = File.join(data_path, params[:filename])
 
   File.delete(file_path)
