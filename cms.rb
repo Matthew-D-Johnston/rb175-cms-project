@@ -2,6 +2,7 @@ require "sinatra"
 require "sinatra/reloader"
 require "tilt/erubis"
 require "redcarpet"
+require "yaml"
 
 configure do
   enable :sessions
@@ -32,9 +33,24 @@ def load_file_content(path)
   end
 end
 
-def not_signed_in_redirect
-  session[:message] = "You must be signed in to do that."
-  redirect "/"
+def user_signed_in?
+  session.key?(:username)
+end
+
+def require_signed_in_user
+  unless user_signed_in?
+    session[:message] = "You must be signed in to do that."
+    redirect "/"
+  end
+end
+
+def load_user_credentials
+  credentials_path = if ENV["RACK_ENV"] == "test"
+    File.expand_path("../test/users.yml", __FILE__)
+  else
+    File.expand_path("../users.yml", __FILE__)
+  end
+  YAML.load_file(credentials_path)
 end
 
 get "/" do
@@ -46,7 +62,8 @@ get "/" do
 end
 
 get "/new" do
-  not_signed_in_redirect if !session[:username]
+  require_signed_in_user
+
   erb :new
 end
 
@@ -62,7 +79,7 @@ get "/:filename" do
 end
 
 get "/:filename/edit" do
-  not_signed_in_redirect if !session[:username]
+  require_signed_in_user
 
   file_path = File.join(data_path, params[:filename])
 
@@ -73,7 +90,7 @@ get "/:filename/edit" do
 end
 
 post "/create" do
-  not_signed_in_redirect if !session[:username]
+  require_signed_in_user
 
   filename = params[:filename].to_s
 
@@ -92,7 +109,7 @@ post "/create" do
 end
 
 post "/:filename" do
-  not_signed_in_redirect if !session[:username]
+  require_signed_in_user
 
   file_path = File.join(data_path, params[:filename])
 
@@ -103,7 +120,7 @@ post "/:filename" do
 end
 
 post "/:filename/delete" do
-  not_signed_in_redirect if !session[:username]
+  require_signed_in_user
 
   file_path = File.join(data_path, params[:filename])
 
@@ -118,8 +135,11 @@ get "/users/signin" do
 end
 
 post "/users/signin" do
-  if params[:username] == "admin" && params[:password] == "secret"
-    session[:username] = params[:username]
+  credentials = load_user_credentials
+  username = params[:username]
+
+  if credentials.key?(username) && credentials[username] == params[:password]
+    session[:username] = username
     session[:message] = "Welcome!"
     redirect "/"
   else

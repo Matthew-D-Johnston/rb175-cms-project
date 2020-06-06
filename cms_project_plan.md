@@ -1737,5 +1737,218 @@ post "/:filename/delete" do
 end
 ```
 
+#### LS Implementation
 
+1. Write a method that returns `true` or `false` based on if a user is signed in.
+2. Write a method that checks the return value of the method created in #1 and, if a user is not signed in, stores a message in the session and redirects to the index page.
+3. Call the method created in #2 at the beginning of actions that only signed-in users should access.
+4. Add additional tests to verify that signed-out users are handled properly.
+
+#### LS Solution
+
+```ruby
+# cms.rb
+def user_signed_in?
+  session.key?(:username)
+end
+
+def require_signed_in_user
+  unless user_signed_in?
+    session[:message] = "You must be signed in to do that."
+    redirect "/"
+  end
+end
+
+...
+
+get "/new" do
+  require_signed_in_user
+
+  erb :new
+end
+
+post "/create" do
+  require_signed_in_user
+
+  filename = params[:filename].to_s
+
+  if filename.size == 0
+    session[:message] = "A name is required."
+    status 422
+    erb :new
+  else
+    file_path = File.join(data_path, filename)
+
+    File.write(file_path, "")
+    session[:message] = "#{params[:filename]} has been created."
+
+    redirect "/"
+  end
+end
+
+...
+
+get "/:filename/edit" do
+  require_signed_in_user
+
+  file_path = File.join(data_path, params[:filename])
+
+  @filename = params[:filename]
+  @content = File.read(file_path)
+
+  erb :edit
+end
+
+post "/:filename" do
+  require_signed_in_user
+
+  file_path = File.join(data_path, params[:filename])
+
+  File.write(file_path, params[:content])
+
+  session[:message] = "#{params[:filename]} has been updated."
+  redirect "/"
+end
+
+post "/:filename/delete" do
+  require_signed_in_user
+
+  file_path = File.join(data_path, params[:filename])
+
+  File.delete(file_path)
+
+  session[:message] = "#{params[:filename]} has been deleted."
+  redirect "/"
+end
+```
+
+```ruby
+# test/cms_test.rb
+def admin_session
+  { "rack.session" => { username: "admin" } }
+end
+
+...
+
+def test_editing_document
+  create_document "changes.txt"
+
+  get "/changes.txt/edit", {}, admin_session
+
+  assert_equal 200, last_response.status
+  assert_includes last_response.body, "<textarea"
+  assert_includes last_response.body, %q(<button type="submit")
+end
+
+def test_editing_document_signed_out
+  create_document "changes.txt"
+
+  get "/changes.txt/edit"
+
+  assert_equal 302, last_response.status
+  assert_equal "You must be signed in to do that.", session[:message]
+end
+
+def test_updating_document
+  post "/changes.txt", {content: "new content"}, admin_session
+
+  assert_equal 302, last_response.status
+  assert_equal "changes.txt has been updated.", session[:message]
+
+  get "/changes.txt"
+  assert_equal 200, last_response.status
+  assert_includes last_response.body, "new content"
+end
+
+def test_updating_document_signed_out
+  post "/changes.txt", {content: "new content"}
+
+  assert_equal 302, last_response.status
+  assert_equal "You must be signed in to do that.", session[:message]
+end
+
+def test_view_new_document_form
+  get "/new", {}, admin_session
+
+  assert_equal 200, last_response.status
+  assert_includes last_response.body, "<input"
+  assert_includes last_response.body, %q(<button type="submit")
+end
+
+def test_view_new_document_form_signed_out
+  get "/new"
+
+  assert_equal 302, last_response.status
+  assert_equal "You must be signed in to do that.", session[:message]
+end
+
+def test_create_new_document
+  post "/create", {filename: "test.txt"}, admin_session
+  assert_equal 302, last_response.status
+  assert_equal "test.txt has been created.", session[:message]
+
+  get "/"
+  assert_includes last_response.body, "test.txt"
+end
+
+def test_create_new_document_signed_out
+  post "/create", {filename: "test.txt"}
+
+  assert_equal 302, last_response.status
+  assert_equal "You must be signed in to do that.", session[:message]
+end
+
+def test_create_new_document_without_filename
+  post "/create", {filename: ""}, admin_session
+  assert_equal 422, last_response.status
+  assert_includes last_response.body, "A name is required"
+end
+
+def test_deleting_document
+  create_document("test.txt")
+
+  post "/test.txt/delete", {}, admin_session
+  assert_equal 302, last_response.status
+  assert_equal "test.txt has been deleted.", session[:message]
+
+  get "/"
+  refute_includes last_response.body, %q(href="/test.txt")
+end
+
+def test_deleting_document_signed_out
+  create_document("test.txt")
+
+  post "/test.txt/delete"
+  assert_equal 302, last_response.status
+  assert_equal "You must be signed in to do that.", session[:message]
+end
+```
+
+---
+
+### Assignment 17: Storing User Accounts in an External File
+
+#### Requirements
+
+1. An administrator should be able to modify the list of users who may sign into the application by editing a configuration file using their text editor.
+
+#### My Implementation and Solution
+
+* Add a `users.yaml` file to the `public` directory.
+
+  ```yaml
+  ---
+  bill: "secret1"
+  sonia: "secret2"
+  ...
+  ```
+
+* Update files allowing usernames and passwords that exist in the `yaml` file to sign in and sign out.
+* There should be an "edit user list" page that is only accessible to the administrator. This page will allow the user to edit which users can sign in and out.
+
+#### LS Implementation
+
+1. Create a file called `users.yml` and add a few users to it. Use the format specified above in the hint.
+2. When a user is attempting to sign in, load the file created in #1 and use it to validate the user's credentials.
+3. Modify the application to use `test/users.yml` to load user credentials during testing.
 
