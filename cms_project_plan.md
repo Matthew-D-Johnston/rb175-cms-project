@@ -1952,3 +1952,115 @@ end
 2. When a user is attempting to sign in, load the file created in #1 and use it to validate the user's credentials.
 3. Modify the application to use `test/users.yml` to load user credentials during testing.
 
+#### LS Solution
+
+```ruby
+# cms.rb
+require "yaml"
+
+...
+
+def load_user_credentials
+  credentials_path = if ENV["RACK_ENV"] == "test"
+    File.expand_path("../test/users.yml", __FILE__)
+  else
+    File.expand_path("../users.yml", __FILE__)
+  end
+  YAML.load_file(credentials_path)
+end
+
+...
+
+post "/users/signin" do
+  credentials = load_user_credentials
+  username = params[:username]
+
+  if credentials.key?(username) && credentials[username] == params[:password]
+    session[:username] = username
+    session[:message] = "Welcome!"
+    redirect "/"
+  else
+    session[:message] = "Invalid credentials"
+    status 422
+    erb :signin
+  end
+end
+```
+
+```yaml
+# users.yml
+---
+developer: letmein
+```
+
+```ruby
+# test/users.yml
+---
+admin: secret
+```
+
+---
+
+### Assignment 18: Storing Hashed Passwords
+
+#### Requirements
+
+1. User passwords must be hashed using bcrypt before being stored so that raw passwords are not being stored anywhere.
+
+#### LS Implementation
+
+1. Use `irb` to calculate hashed versions of the passwords that appear in `users.yml` and `test/users.yml`. Replace the passwords in these files with a hashed version.
+2. Update the code that checks a user's username and password in `cms.rb` to use the `BCrypt` class to compare.
+
+#### LS Solution
+
+```ruby
+# Gemfile
+source "https://rubygems.org"
+
+gem "sinatra"
+gem "sinatra-contrib"
+gem "erubis"
+gem "bcrypt"
+
+gem "minitest"
+gem "rack-test"
+```
+
+```ruby
+# cms.rb
+
+...
+
+require "bcrypt"
+
+def valid_credentials?(username, password)
+  credentials = load_user_credentials
+
+  if credentials.key?(username)
+    bcrypt_password = BCrypt::Password.new(credentials[username])
+    bcrypt_password == password
+  else
+    false
+  end
+end
+
+...
+
+post "/users/signin" do
+  username = params[:username]
+
+  if valid_credentials?(username, params[:password])
+    session[:username] = username
+    session[:message] = "Welcome!"
+    redirect "/"
+  else
+    session[:message] = "Invalid credentials"
+    status 422
+    erb :signin
+  end
+end
+```
+
+---
+

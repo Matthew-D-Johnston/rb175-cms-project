@@ -1,5 +1,9 @@
 {
-  developer: letmein,
-  bill: secret1,
-  sonia: secret2
+  developer: $2a$12$RfJMc7fAtu5Xbv4PxPCyY.SL1wKCe5Yy4bSqMQz1LuoAv3a0zxY22,
+  bill: $2a$12$alB3TZ1z3UxSBuUAU1eXAO1/l3d8H1m6Wy6.4lIUjlMKGiRiw8rSq,
+  sonia: $2a$12$vG8FBSLgalA7aoqmnEl0b.fMG4CQol8A8wLDjcGwMM9jb3ffFkvpS
 }
+
+# developer: letmein
+# bill: secret1
+# sonia: secret2

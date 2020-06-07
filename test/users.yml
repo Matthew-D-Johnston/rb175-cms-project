@@ -1,5 +1,9 @@
 {
-  admin: secret,
-  bill: secret1,
-  sonia: secret2
+  admin: $2a$12$ClpwU.rCOTqV2SWvh.ynYORbCGCIYjPQ3lLvS1I/oJc4Ujyl4Q25m,
+  bill: $2a$12$/XG9oyPmSKRgfcJyNwm9JeKvaM9IehCnQyls8.fRCMVQTF4nYj3Hq,
+  sonia: $2a$12$E2qlwQHSaNoOVTD9KU0bauNkpXFFd5verXvcL4AuSl4vUI4SUmlJ2
 }
+
+# admin: secret
+# bill: secret1
+# sonia: secret2
