@@ -2064,3 +2064,214 @@ end
 
 ---
 
+### Next Steps:
+
+#### 1. Validate that document names contain an extension that the application supports.
+
+#### Implementation
+
+* Update the `if` conditional statement in the `post "/create"` route to include an `else` conditional that will check to ensure that the document extension is either a `.txt` or `.md` extension.
+
+  ```ruby
+  # ... 
+  
+  def invalid_extension?(filename)
+  	return true unless filename =~ (/.txt$|.md$/)
+  end
+  
+  # ...
+  
+  post "/create" do
+    require_signed_in_user
+  
+    filename = params[:filename].to_s
+  
+    if filename.size == 0
+      session[:message] = "A name is required."
+      status 422
+      erb :new
+    elsif invalid_extension?(filename)
+      session[:message] = "Document type not supported (only .txt and .md supported)."
+      status 422
+      erb :new
+    else
+      file_path = File.join(data_path, filename)
+  
+      File.write(file_path, "")
+      session[:message] = "#{params[:filename]} has been created."
+  
+      redirect "/"
+    end
+  end
+  ```
+
+---
+
+#### 2. Add a "duplicate" button that creates a new document based on an old one.
+
+#### Implementation
+
+* Update the `index.erb` view template to include a "duplicate" button.
+
+  ```erb
+  <form class="inline" method="post" action="/<%= file %>/duplicate">
+  	<button type="submit">duplicate</button>
+  </form>
+  ```
+
+* Add a `post "/:filename/duplicate"` route to the `cms.rb` file. Load the file content for the file and store it to a new name that includes a "(dup)" in it.
+
+  ```ruby
+  post "/:filename/duplicate" do
+    require_signed_in_user
+    
+    file_path = File.join(data_path, params[:filename])
+    file_ext = File.extname(file_path)
+    file_name = File.basename(file_path, file_ext)
+    
+    duplicate_name = "#{file_name}(dup)#{file_ext}"
+    dup_file_path = File.join(data_path, duplicate_name)
+    
+    file_content = load_file_content(file_path)
+    
+    File.write(dup_file_path, file_content)
+    session[:message] = "#{file_name} duplicate has been created."
+    
+    redirect "/"
+  end
+  ```
+
+---
+
+#### 3. Extend this project with a user signup form.
+
+#### Implementation
+
+* Update the `index.erb` view to include a "New User Signup" link.
+
+  ```erb
+  # ...
+  
+  <% else %>
+    <p class="user-status"><a href="/users/signin">Sign In</a></p>
+    <p class="user-status"><a href="/users/signup">New User Sign Up</a></p>
+  <% end %>
+  ```
+
+* Add a `get "/users/signup"` route. Within the route, render a `signup.erb` view template. Template should include input box for username and password. 
+
+  ```erb
+  <h3>New User Signup</h3>
+  <form method="post" action="/users/signin">
+    <div>
+      <label for="username"> Username:
+        <input name="username" id="username" value="<%= params[:username] %>"/>
+      </label>
+    </div>
+    <div>
+      <label for="password"> Password:
+        <input type="password" id="password" name="password" />
+      </label>
+    </div>
+    <button type="submit">Submit</button>
+  </form>
+  ```
+
+* Add a `post "/users/signup"` route. Within the route, set a new session message to declare that the new user was created. Redirect the user back to the `/` home page. One should now be able to sign in as the newly created user.
+
+  ```ruby
+  post "/users/signup" do
+    username = params[:username]
+    password = params[:password]
+    hashed_password = BCrypt::Password.create(password)
+    
+    credentials = load_user_credentials
+  
+    if credentials.key?(username)
+      session[:message] = "Sorry, that username already exists."
+      redirect "users/signup"
+    else
+      credentials[username] = hashed_password
+      credentials_path = File.expand_path("../users.yml", __FILE__)
+      File.open(credentials_path, "w") { |file| file.write(credentials.to_yaml) }
+  
+      session[:message] = "#{username} was added to the user database."
+      redirect "/"
+    end
+  end
+  ```
+
+---
+
+#### 4. Add the ability to upload images to the CMS (which could be referenced within markdown files).
+
+#### Implementation
+
+* Update the `invalid_extension?(filename)` method in the `cms.rb` file to allow for `.jpg`, `.jpeg` and `.png` files to be accepted.
+
+  ```ruby
+  def invalid_extension?(filename)
+    return true unless filename =~ (/.txt$|.md$|.jpg$|.jpeg$|.png$/)
+  end
+  ```
+
+* Update the `load_file_content(path)` method in the `cms.rb` file in order to render image files.
+
+  ```ruby
+  def load_file_content(path)
+    content = File.read(path)
+    case File.extname(path)
+    when ".txt"
+      headers["Content-Type"] = "text/plain"
+      content
+    when ".md"
+      erb render_markdown(content)
+    when ".jpeg"
+      headers["Content-Type"] = "image/jpeg"
+      content
+    when ".jpg"
+      headers["Content-Type"] = "image/jpg"
+      content
+    when ".png"
+      headers["Content-Type"] = "image/png"
+      content
+    end
+  end
+  ```
+
+---
+
+#### 5. Modify the CMS so that each version of a document is preserved as changes are made to it.
+
+#### Implementation
+
+* Whenever a document is edited, create a duplicate of the document and save it with `(original)` and a time stamp added to the documents name.
+
+* Update `post "/:filename" do` route so that a duplicate file is created whenever the "Save Changes" button is clicked.
+
+  ```ruby
+  post "/:filename" do
+    require_signed_in_user
+  
+    time = Time.new
+  
+    file_path = File.join(data_path, params[:filename])
+    file_ext = File.extname(file_path)
+    file_name = File.basename(file_path, file_ext)
+    
+    duplicate_name = "#{file_name}(org_#{time.strftime("%m_%d_%Y")})#{file_ext}"
+    dup_file_path = File.join(data_path, duplicate_name)
+    
+    file_content = load_file_content(file_path)
+    
+    File.write(dup_file_path, file_content)
+  
+    File.write(file_path, params[:content])
+  
+    session[:message] = "#{params[:filename]} has been updated."
+    redirect "/"
+  end
+  ```
+
+---
+

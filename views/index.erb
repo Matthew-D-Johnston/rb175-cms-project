@@ -6,6 +6,9 @@
       <form class="inline" method="post" action="/<%= file %>/delete">
         <button type="submit">delete</button>
       </form>
+      <form class="inline" method="post" action="/<%= file %>/duplicate">
+        <button type="submit">duplicate</button>
+      </form>
     </li>
   <% end %>
 </ul>
@@ -21,4 +24,5 @@
   </form>
 <% else %>
   <p class="user-status"><a href="/users/signin">Sign In</a></p>
+  <p class="user-status"><a href="/users/signup">New User Sign Up</a></p>
 <% end %>

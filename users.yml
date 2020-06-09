@@ -1,9 +1,16 @@
-{
-  developer: $2a$12$RfJMc7fAtu5Xbv4PxPCyY.SL1wKCe5Yy4bSqMQz1LuoAv3a0zxY22,
-  bill: $2a$12$alB3TZ1z3UxSBuUAU1eXAO1/l3d8H1m6Wy6.4lIUjlMKGiRiw8rSq,
-  sonia: $2a$12$vG8FBSLgalA7aoqmnEl0b.fMG4CQol8A8wLDjcGwMM9jb3ffFkvpS
-}
-
-# developer: letmein
-# bill: secret1
-# sonia: secret2
+---
+developer: "$2a$12$RfJMc7fAtu5Xbv4PxPCyY.SL1wKCe5Yy4bSqMQz1LuoAv3a0zxY22"
+bill: "$2a$12$alB3TZ1z3UxSBuUAU1eXAO1/l3d8H1m6Wy6.4lIUjlMKGiRiw8rSq"
+sonia: "$2a$12$vG8FBSLgalA7aoqmnEl0b.fMG4CQol8A8wLDjcGwMM9jb3ffFkvpS"
+matt: !ruby/string:BCrypt::Password
+  str: "$2a$12$tYC4jz5drHs0uYEnQmhBa.mykYakSEv5pQORSs48RkvYNNKpzn1NS"
+  version: 2a
+  cost: 12
+  salt: "$2a$12$tYC4jz5drHs0uYEnQmhBa."
+  checksum: mykYakSEv5pQORSs48RkvYNNKpzn1NS
+dolly: !ruby/string:BCrypt::Password
+  str: "$2a$12$ceIsXFt1XNWtxlP5yDmdqe3myB5Hu4e/3hxYH7VsomFUNXoXXeW1e"
+  version: 2a
+  cost: 12
+  salt: "$2a$12$ceIsXFt1XNWtxlP5yDmdqe"
+  checksum: 3myB5Hu4e/3hxYH7VsomFUNXoXXeW1e
