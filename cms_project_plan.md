@@ -2262,9 +2262,7 @@ end
     duplicate_name = "#{file_name}(org_#{time.strftime("%m_%d_%Y")})#{file_ext}"
     dup_file_path = File.join(data_path, duplicate_name)
     
-    file_content = load_file_content(file_path)
-    
-    File.write(dup_file_path, file_content)
+    FileUtils.cp(file_path, dup_file_path)
   
     File.write(file_path, params[:content])
   
